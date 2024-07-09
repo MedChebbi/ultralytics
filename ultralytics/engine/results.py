@@ -84,6 +84,7 @@ class Results(SimpleClass):
         orig_img (numpy.ndarray): Original image as a numpy array.
         orig_shape (tuple): Original image shape in (height, width) format.
         boxes (Boxes, optional): Object containing detection bounding boxes.
+        lost_tracks (Boxes, optional): Object containing tracking estimates bounding boxes.
         masks (Masks, optional): Object containing detection masks.
         probs (Probs, optional): Object containing class probabilities for classification tasks.
         keypoints (Keypoints, optional): Object containing detected keypoints for each object.
@@ -108,8 +109,8 @@ class Results(SimpleClass):
     """
 
     def __init__(
-        self, orig_img, path, names, boxes=None, masks=None, probs=None, keypoints=None, obb=None, speed=None
-    ) -> None:
+        self, orig_img, path, names, boxes=None, masks=None, probs=None, keypoints=None,
+        obb=None, speed=None, tracks=None) -> None:
         """
         Initialize the Results class for storing and manipulating inference results.
 
@@ -118,6 +119,7 @@ class Results(SimpleClass):
             path (str): The path to the image file.
             names (dict): A dictionary of class names.
             boxes (torch.tensor, optional): A 2D tensor of bounding box coordinates for each detection.
+            tracks(torch.tensor, optional): A 2D tensor of bounding box coordinates for each lost track from tracker.
             masks (torch.tensor, optional): A 3D tensor of detection masks, where each mask is a binary image.
             probs (torch.tensor, optional): A 1D tensor of probabilities of each class for classification task.
             keypoints (torch.tensor, optional): A 2D tensor of keypoint coordinates for each detection. For default pose
@@ -140,6 +142,7 @@ class Results(SimpleClass):
         self.orig_img = orig_img
         self.orig_shape = orig_img.shape[:2]
         self.boxes = Boxes(boxes, self.orig_shape) if boxes is not None else None  # native size boxes
+        self.lost_tracks = Boxes(tracks, self.orig_shape) if tracks is not None else None  # native size boxes
         self.masks = Masks(masks, self.orig_shape) if masks is not None else None  # native size or imgsz masks
         self.probs = Probs(probs) if probs is not None else None
         self.keypoints = Keypoints(keypoints, self.orig_shape) if keypoints is not None else None
@@ -161,10 +164,12 @@ class Results(SimpleClass):
             if v is not None:
                 return len(v)
 
-    def update(self, boxes=None, masks=None, probs=None, obb=None):
+    def update(self, boxes=None, masks=None, probs=None, obb=None, tracks=None):
         """Updates detection results attributes including boxes, masks, probs, and obb with new data."""
         if boxes is not None:
             self.boxes = Boxes(ops.clip_boxes(boxes, self.orig_shape), self.orig_shape)
+        if tracks is not None:
+            self.lost_tracks = Boxes(ops.clip_boxes(tracks, self.orig_shape), self.orig_shape)
         if masks is not None:
             self.masks = Masks(masks, self.orig_shape)
         if probs is not None:

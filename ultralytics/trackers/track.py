@@ -74,6 +74,7 @@ def on_predict_postprocess_end(predictor: object, persist: bool = False) -> None
         predictor.results[i] = predictor.results[i][idx]
 
         update_args = {"obb" if is_obb else "boxes": torch.as_tensor(tracks[:, :-1])}
+        update_args["tracks"] = torch.as_tensor(tracker.lost_tracks[:, :-1]) if len(tracker.lost_tracks) else None
         predictor.results[i].update(**update_args)
 
 
